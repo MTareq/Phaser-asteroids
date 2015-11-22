@@ -1,0 +1,16 @@
+{
+  "name": "asteroids",
+  "version": "1.0.0",
+  "description": "Asteroids HTML5 game",
+  "main": "index.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "mtareq",
+  "license": "ISC",
+  "devDependencies": {
+    "grunt-contrib-connect": "^0.11.2",
+    "grunt-contrib-jshint": "^0.11.3",
+    "grunt-contrib-watch": "^0.6.1"
+  }
+}
