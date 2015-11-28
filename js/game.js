@@ -52,7 +52,8 @@ gameState.prototype = {
     },
 
     update: function(){
-        this.checkPlayerInput()
+        this.checkPlayerInput();
+        this.checkBoundries(this.shipSprite);
     
     },
 
@@ -97,6 +98,21 @@ gameState.prototype = {
         }
     
     },
+
+    checkBoundries: function(sprite){
+        if(sprite.x < 0 ){
+            sprite.x = gameProperties.screenWidth;
+        }else if(sprite.x > gameProperties.screenWidth){
+           sprite.x = 0 ;
+        }
+
+        if(sprite.y < 0 ){
+            sprite.y = gameProperties.screenHight;
+        }else if(sprite.y >gameProperties.screenHight){
+           sprite.y = 0 ;
+        }
+    
+    }, 
 }
 var game = new Phaser.Game(gameProperties.screenWidth, gameProperties.screenHight, Phaser.AUTO, 'gameDiv');
 game.state.add(states.game, gameState);
