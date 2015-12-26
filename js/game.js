@@ -25,6 +25,11 @@ var gameState = function(game){
 
     this.bulletGroup;
     this.bulletInterval = 0;
+
+    this.asteroidGroup;
+    this.asteroidCount = asteroidProperties.startingAsteroids;
+    this.shipLives = shipProperties.startingLives;
+    this.tf_lives;
 };
 
 var shipProperties = {
@@ -34,6 +39,8 @@ var shipProperties = {
     drag: 100,
     maxVelocity: 300,
     angularVelocity: 200,
+    startingLives: 3,
+    timeToReset: 3,
 };
 
 var bulletPoperties = {
@@ -41,6 +48,26 @@ var bulletPoperties = {
     interval: 250,
     lifespan: 2000,
     maxCount: 30,
+};
+
+var asteroidProperties = {
+    startingAsteroids: 4,
+    maxAsteroids: 20,
+    incrementAsteroids: 2,
+
+    asteroidLarge: {minVelocity: 50, maxVelocity: 150, minAngularVelocity: 0, 
+                    maxAngualrVelocity: 200, score: 20, 
+                    nextSize: graphicAssets.asteroidMedium.name, pieces: 2},
+    asteroidMedium: {minVelocity: 50, maxVelocity: 200, minAngularVelocity: 0,
+                     maxAngualrVelocity: 200, score: 50, 
+                     nextSize: graphicAssets.asteroidSmall.name, pieces: 2},
+    asteroidSmall: {minVelocity: 50, maxVelocity: 300, minAngularVelocity: 0, maxAngualrVelocity: 200, score: 100}
+};
+
+var fontAssets = {
+
+    counterFontStyle: {font: '20px Arial', fill: '#FFFFFF', align: 'center'},
+
 };
 
 
@@ -59,13 +86,18 @@ gameState.prototype = {
         this.initGraphics();
         this.initPhysics();
         this.initKeyboard();
+        this.resetAsteroids();
     
     },
 
     update: function(){
         this.checkPlayerInput();
         this.checkBoundries(this.shipSprite);
-        this.bulletGroup.forEachExists(this.checkBoundries, this)
+        this.bulletGroup.forEachExists(this.checkBoundries, this);
+        this.asteroidGroup.forEachExists(this.checkBoundries, this);
+        
+        game.physics.arcade.overlap(this.bulletGroup, this.asteroidGroup, this.asteroidCollision, null, this);
+        game.physics.arcade.overlap(this.shipSprite, this.asteroidGroup, this.asteroidCollision, null, this);
     
     },
 
@@ -75,6 +107,8 @@ gameState.prototype = {
         this.shipSprite.angle = -90;
         this.shipSprite.anchor.set(0.5, 0.5);
         this.bulletGroup = game.add.group();
+        this.asteroidGroup = game.add.group();
+        this.tf_lives = game.add.text(20, 10, shipProperties.startingLives, fontAssets.counterFontStyle);
     },
 
     initPhysics: function(){
@@ -91,6 +125,9 @@ gameState.prototype = {
         this.bulletGroup.setAll('anchor.x', 0.5);
         this.bulletGroup.setAll('anchor.y', 0.5);
         this.bulletGroup.setAll('lifeSpan', bulletPoperties.lifespan);
+
+        this.asteroidGroup.enableBody = true;
+        this.asteroidGroup.physicsBodyType = Phaser.Physics.ARCADE;
     },
 
     initKeyboard: function(){
@@ -157,6 +194,79 @@ gameState.prototype = {
             }
         
         }
+    
+    },
+
+    createAsteroid: function(x, y, size, pieces){
+        if(pieces === undefined){pieces = 1;}
+        for(var i=0; i < pieces; i++){
+
+            var asteroid = this.asteroidGroup.create(x, y, size);
+            asteroid.anchor.set(0.5, 0.5);
+            asteroid.angularVelocity = game.rnd.integerInRange(asteroidProperties[size].minAngularVelocity, 
+                                                               asteroidProperties[size].maxAngualrVelocity);
+
+            var randomAngle = game.math.degToRad(game.rnd.angle());
+            var randomVelocity = game.rnd.integerInRange(asteroidProperties[size].minVelocity, 
+                                                         asteroidProperties[size].maxVelocity);
+
+            game.physics.arcade.velocityFromRotation(randomAngle, randomVelocity, asteroid.body.velocity);
+        }
+    },
+
+
+    resetAsteroids: function(){
+        for(var i=0; i < this.asteroidCount; i++){
+
+            var side = Math.round(Math.random());
+            var x;
+            var y;
+
+            if(side){
+                x = Math.round(Math.random()) * gameProperties.screenWidth;
+                y = Math.random() * gameProperties.screenHeight;
+
+            }else{
+                y = Math.round(Math.random()) * gameProperties.screenHeight;
+                x = Math.random() * gameProperties.screenWidth;
+            }
+
+            this.createAsteroid(x, y, graphicAssets.asteroidLarge.name);
+        }
+    },
+
+    asteroidCollision: function(target, asteroid){
+        target.kill();
+        asteroid.kill();
+
+        if(target.key == graphicAssets.ship.name){
+            this.destroyShip();
+        }
+        this.splitAsteroid(asteroid);
+    },
+
+    destroyShip: function(){
+        this.shipLives--;
+        this.tf_lives.text = this.shipLives;
+
+        if(this.shipLives){
+            game.time.events.add(Phaser.Timer.SECOND * shipProperties.timeToReset, this.resetShip, this);
+        
+        }
+    },
+    
+    resetShip: function(){
+        this.shipSprite.reset(shipProperties.startX, shipProperties.startY);
+        this.shipSprite.angle = -90;
+    },
+
+    splitAsteroid: function(asteroid){
+        key = asteroid.key;
+        if(asteroidProperties[key].nextSize){
+            this.createAsteroid(asteroid.x, asteroid.y, asteroidProperties[key].nextSize,
+                                asteroidProperties[key].pieces);
+        }
+    
     
     },
 
